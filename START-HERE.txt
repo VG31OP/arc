@@ -1,0 +1,66 @@
+BUILD YOUR OWN ARC (100% FREE VERSION)
+Talk to Arc from your laptop or phone, and your laptop does what you ask.
+NO PAID APIs NEEDED. NO TELECOM CREDITS. ZERO COST.
+
+BEFORE YOU START:
+  - Just a Windows laptop.
+That's it! Everything else installs automatically.
+
+
+=====================================================================
+ HOW TO START (Takes 2 minutes)
+=====================================================================
+
+1. Double-click  Start-Arc.bat
+   If Windows asks "Do you want to allow this app...", click Yes.
+   The first time it installs what it needs (Node.js & cloudflared).
+
+2. It will ask for your mobile number (example: 919876543210).
+   Type it and press Enter.
+
+3. Optional: It will ask for a free Google Gemini API key.
+   - If you have one from https://aistudio.google.com/ , paste it and press Enter.
+   - Or just press Enter to skip! Arc has a built-in smart engine that
+     works 100% offline with zero keys.
+
+4. Wait until the window says:
+   ⚡ ARC IS READY (100% FREE VERSION)
+   Keep that black window open. (Closing it switches Arc off.)
+
+
+=====================================================================
+ HOW TO TALK TO ARC (FREE VOICE CALL)
+=====================================================================
+
+On your laptop:
+  1. Open http://localhost:3710 in your browser (Chrome or Edge).
+  2. Click the green "📞 Call Arc" button.
+  3. Arc will say: "Hey Boss, it's Arc. What can I do for you?"
+  4. Talk into your microphone!
+
+On your phone (from anywhere):
+  1. Look at the Start-Arc window: it shows a free Cloudflare link
+     (e.g., https://something.trycloudflare.com).
+     It is already copied to your clipboard!
+  2. Open that link on your phone's browser (Chrome or Safari).
+  3. Tap "📞 Call Arc" and talk to your laptop from your phone!
+
+
+=====================================================================
+ WHAT YOU CAN SAY
+=====================================================================
+
+- "Play Arijit Singh on YouTube"
+- "What is my laptop battery?"
+- "Set a 5 minute timer for tea"
+- "Take a screenshot"
+- "Open VS Code"
+- "Work mode on"
+- "Remind me, DBMS project due tomorrow 5 pm"
+- "Find my chemistry assignment"
+- "Volume badhao" / "Volume kam karo"
+- "Lock my laptop"
+
+
+If you want to end the call, click "End Call" or just say "Bye".
+Enjoy your own free Arc!

@@ -1,0 +1,7 @@
+node_modules/
+.env
+tunnel-url.txt
+deadlines.json
+classroom-state.json
+.classroom-profile/
+*.log

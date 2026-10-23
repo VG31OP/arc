@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARC Console · Free Voice Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f7fb; --panel:rgba(255,255,255,.90); --line:rgba(15,76,129,.14); --ink:#0f1c2e; --muted:#5b6b80;
+  --cyan:#0b7fab; --cyan2:#0ea5c6; --amber:#d97706; --red:#dc2626; --green:#15803d;
+  --glow:rgba(11,127,171,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(1200px 700px at 50% 38%,#e3f1fb 0%,var(--bg) 62%);color:var(--ink);font:15px/1.45 "Space Grotesk",system-ui,sans-serif;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:
+  linear-gradient(transparent 0 calc(100% - 1px),rgba(11,127,171,.05) 0) 0 0/100% 32px,
+  linear-gradient(90deg,transparent 0 calc(100% - 1px),rgba(11,127,171,.05) 0) 0 0/32px 100%}
+.wrap{position:relative;max-width:1300px;margin:0 auto;padding:16px 16px 36px;display:grid;gap:16px;grid-template-columns:310px 1fr 330px;grid-template-areas:"left core right"}
+@media (max-width:1120px){.wrap{grid-template-columns:1fr;grid-template-areas:"core" "left" "right"}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;backdrop-filter:blur(8px);box-shadow:0 6px 24px rgba(15,28,46,.06)}
+.label{font:600 11px/1 "JetBrains Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.left{grid-area:left;display:flex;flex-direction:column;gap:16px}
+.right{grid-area:right;display:flex;flex-direction:column;gap:16px;min-height:0}
+.core{grid-area:core;display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:4px}
+
+.header-bar{display:flex;flex-direction:column;align-items:center;gap:4px}
+h1{margin:0;font-size:32px;letter-spacing:.32em;font-weight:700;text-align:center}
+h1 span{color:var(--cyan)}
+.tag{color:var(--muted);text-align:center;font-size:13px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font:600 11px "JetBrains Mono",monospace;background:rgba(11,127,171,.1);color:var(--cyan);border:1px solid rgba(11,127,171,.2)}
+
+/* Voice Call Controller */
+.call-box{width:100%;max-width:640px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(240,247,253,.95));border:2px solid rgba(11,127,171,.2);border-radius:18px;padding:18px;box-shadow:0 12px 36px rgba(11,127,171,.12)}
+.call-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.call-info{display:flex;align-items:center;gap:12px}
+.call-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--cyan2));display:grid;place-items:center;color:#fff;font-size:20px;font-weight:700;box-shadow:0 4px 14px rgba(11,127,171,.35)}
+.call-avatar.incall{animation:pulse-ring 2s infinite}
+@keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(11,127,171,.5)} 70%{box-shadow:0 0 0 16px rgba(11,127,171,0)} 100%{box-shadow:0 0 0 0 rgba(11,127,171,0)}}
+.call-status-text{font-size:16px;font-weight:600}
+.call-subtext{font-size:12px;color:var(--muted);font-family:"JetBrains Mono",monospace}
+.call-btns{display:flex;align-items:center;gap:8px}
+
+.btn{border:none;outline:none;cursor:pointer;font-family:inherit;font-weight:600;font-size:14px;padding:9px 16px;border-radius:10px;display:inline-flex;align-items:center;gap:8px;transition:all .2s}
+.btn-green{background:var(--green);color:#fff;box-shadow:0 4px 14px rgba(21,128,61,.3)}
+.btn-green:hover{background:#136c34;transform:translateY(-1px)}
+.btn-red{background:var(--red);color:#fff;box-shadow:0 4px 14px rgba(220,38,38,.3)}
+.btn-red:hover{background:#b91c1c}
+.btn-ghost{background:rgba(15,76,129,.08);color:var(--ink)}
+.btn-ghost:hover{background:rgba(15,76,129,.14)}
+
+.live-speech-box{min-height:38px;padding:8px 12px;border-radius:8px;background:rgba(15,76,129,.05);font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.live-speech-box b{color:var(--ink)}
+
+.chat-bar{display:flex;gap:8px}
+.chat-bar input{flex:1;font:inherit;font-size:14px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);outline:none;transition:border-color .2s}
+.chat-bar input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(11,127,171,.15)}
+.chat-bar button{background:var(--cyan);color:#fff}
+.chat-bar button:hover{background:#09668a}
+
+/* reactor */
+.reactor{position:relative;width:min(340px,78vw);aspect-ratio:1}
+.reactor svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.spin{transform-origin:50% 50%;animation:spin 18s linear infinite}
+.spin.r{animation-direction:reverse;animation-duration:26s}
+.spin.f{animation-duration:6s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.glow{filter:drop-shadow(0 0 6px rgba(11,127,171,.4))}
+.center{position:absolute;inset:28%;border-radius:50%;display:grid;place-items:center;text-align:center;
+  background:radial-gradient(circle,rgba(14,165,198,.22),rgba(14,165,198,.04) 62%,transparent 70%);transition:background .4s}
+.center .state{font:600 12px "JetBrains Mono",monospace;letter-spacing:.2em;color:var(--cyan)}
+.center .big{font-size:19px;font-weight:700;margin-top:4px;max-width:140px;word-break:break-word}
+.reactor.fire .center{background:radial-gradient(circle,rgba(255,181,71,.45),rgba(255,181,71,.06) 62%,transparent 70%)}
+.reactor.fire .center .state{color:var(--amber)}
+.reactor.deny .center{background:radial-gradient(circle,rgba(255,93,108,.45),rgba(255,93,108,.06) 62%,transparent 70%)}
+.reactor.deny .center .state{color:var(--red)}
+.reactor.fire .spin{animation-duration:2s}
+.reactor.fire .spin.r{animation-duration:3s}
+
+.now{width:100%;max-width:640px;text-align:center}
+.now .cmd{font-size:20px;font-weight:500;min-height:30px}
+.now .cmd q{color:var(--cyan)}
+.now .res{color:var(--muted);margin-top:6px;min-height:22px}
+
+.chips{display:flex;flex-direction:column;gap:8px}
+.chip{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.9)}
+.chip i{font-style:normal;font:600 12px "JetBrains Mono",monospace}
+.ok{color:var(--green)} .warn{color:var(--amber)} .bad{color:var(--red)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:6px;box-shadow:0 0 6px currentColor}
+
+.caps{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cap{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;font-size:13px;background:rgba(255,255,255,.9);transition:all .3s;cursor:pointer}
+.cap:hover{border-color:var(--cyan);background:#fff}
+.cap .ic{width:22px;text-align:center}
+.cap.hot{border-color:var(--amber);background:rgba(255,181,71,.12);box-shadow:0 0 18px rgba(255,181,71,.25)}
+
+.feed{display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow:auto;padding-right:2px}
+.item{border:1px solid var(--line);border-left:3px solid var(--cyan2);border-radius:10px;padding:9px 11px;background:rgba(255,255,255,.9)}
+.item.refused{border-left-color:var(--red)}
+.item.new{animation:flash 1.4s ease-out}
+@keyframes flash{from{background:rgba(14,165,198,.16)}}
+.item .top{display:flex;justify-content:space-between;gap:8px;font:12px "JetBrains Mono",monospace;color:var(--muted)}
+.item .act{color:var(--cyan)} .item.refused .act{color:var(--red)}
+.item .in{margin-top:4px} .item .out{color:var(--muted);font-size:13px;margin-top:2px}
+.empty{color:var(--muted);font-size:14px;text-align:center;padding:24px 0}
+.samples{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.samples span{color:var(--ink);cursor:pointer}
+.samples span:hover{color:var(--cyan)}
+.watch{display:flex;flex-direction:column;gap:10px}
+.dls{display:flex;flex-direction:column;gap:8px}
+.dl{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:rgba(255,255,255,.9);display:flex;justify-content:space-between;gap:10px;align-items:center}
+.dl b{display:block;font-weight:600}
+.dl small{color:var(--muted);font:12px "JetBrains Mono",monospace}
+.dl.soon{border-color:var(--amber);background:rgba(217,119,6,.08)}
+.dl.late{border-color:var(--red);background:rgba(220,38,38,.07)}
+.dl button,.add button,.ghostbtn{font:inherit;font-size:13px;border-radius:8px;cursor:pointer;padding:7px 10px}
+.dl button{border:1px solid var(--line);background:#fff;color:var(--ink)}
+.add{display:flex;flex-direction:column;gap:6px}
+.add input{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.add button{border:0;background:var(--cyan);color:#fff;font-weight:600}
+.ghostbtn{border:1px solid var(--cyan);background:#fff;color:var(--cyan);font-weight:600}
+.watchmsg{font-size:13px;color:var(--muted);min-height:18px}
+@media (prefers-reduced-motion:reduce){.spin,.item.new{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="left">
+    <div class="panel">
+      <div class="label">Arc System</div>
+      <div class="chips">
+        <div class="chip"><span>Laptop link</span><i id="link" class="ok"><span class="dot"></span>ONLINE</i></div>
+        <div class="chip"><span>AI Engine</span><i id="aiEngine" class="ok">Checking...</i></div>
+        <div class="chip"><span>Actions today</span><i id="count">0</i></div>
+        <div class="chip"><span>Owner lock</span><i id="lock">—</i></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">Free Mobile Access</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.4">
+        Open this URL on your phone to talk to Arc directly from anywhere with zero phone carrier charges:
+      </div>
+      <div id="tunnelLinkBox" style="margin-top:8px;font:12px 'JetBrains Mono',monospace;word-break:break-all;color:var(--cyan);background:rgba(11,127,171,.08);padding:8px;border-radius:8px">
+        Waiting for Cloudflare tunnel...
+      </div>
+    </div>
+
+    <div class="panel samples">
+      <div class="label">Quick Voice Commands (Click to test)</div>
+      <div><span onclick="sendQuick(this.innerText)">“What is my laptop battery?”</span></div>
+      <div><span onclick="sendQuick(this.innerText)">“Play Arijit Singh on YouTube”</span></div>
+      <div><span onclick="sendQuick(this.innerText)">“25 minute focus session for study”</span></div>
+      <div><span onclick="sendQuick(this.innerText)">“Remind me, chemistry assignment due tomorrow 5 pm”</span></div>
+      <div><span onclick="sendQuick(this.innerText)">“Work mode on karo”</span></div>
+      <div><span onclick="sendQuick(this.innerText)">“5 minute ka timer lagao chai ke liye”</span></div>
+      <div><span onclick="sendQuick(this.innerText)">“Take a screenshot”</span></div>
+      <div><span onclick="sendQuick(this.innerText)">“Volume badhao”</span></div>
+      <div><span onclick="sendQuick(this.innerText)">“Open VS Code”</span></div>
+    </div>
+  </aside>
+
+  <main class="core">
+    <div class="header-bar">
+      <h1>A<span>.</span>R<span>.</span>C</h1>
+      <div class="tag">Free Voice Assistant for your Laptop · Zero Paid APIs Needed</div>
+      <div id="aiBadge" class="badge">⚡ Loading AI...</div>
+    </div>
+
+    <!-- Live Voice Call Controller -->
+    <div class="call-box" id="callBox">
+      <div class="call-top">
+        <div class="call-info">
+          <div class="call-avatar" id="callAvatar">A</div>
+          <div>
+            <div class="call-status-text" id="callTitle">Voice Call Arc</div>
+            <div class="call-subtext" id="callSub">Press "Call Arc" to talk freely via microphone</div>
+          </div>
+        </div>
+        <div class="call-btns">
+          <button id="callBtn" class="btn btn-green" onclick="toggleCall()">📞 Call Arc</button>
+        </div>
+      </div>
+
+      <div class="live-speech-box" id="liveSpeech">
+        <span>Mic:</span> <b id="speechText">Microphone standby. Click "Call Arc" or type below.</b>
+      </div>
+
+      <form class="chat-bar" onsubmit="handleChatSubmit(event)">
+        <input id="chatInput" placeholder="Say or type a command: 'play music', 'battery', 'open chrome'..." />
+        <button type="submit" class="btn">Send</button>
+      </form>
+    </div>
+
+    <!-- Arc Reactor Visualization -->
+    <div class="reactor" id="reactor" aria-hidden="true">
+      <svg viewBox="0 0 200 200">
+        <g class="spin glow"><circle cx="100" cy="100" r="96" fill="none" stroke="#0b7fab" stroke-opacity=".55" stroke-width="1" stroke-dasharray="2 6"/></g>
+        <g class="spin r"><circle cx="100" cy="100" r="86" fill="none" stroke="#0ea5c6" stroke-opacity=".35" stroke-width="6" stroke-dasharray="40 14"/></g>
+        <g class="spin f glow"><circle cx="100" cy="100" r="74" fill="none" stroke="#0b7fab" stroke-width="1.5" stroke-dasharray="90 30 20 30"/></g>
+        <g class="spin"><circle cx="100" cy="100" r="64" fill="none" stroke="#0b7fab" stroke-opacity=".25" stroke-width="10" stroke-dasharray="3 5"/></g>
+      </svg>
+      <div class="center"><div><div class="state" id="state">STANDBY</div><div class="big" id="big">Ready</div></div></div>
+    </div>
+
+    <div class="now panel">
+      <div class="label">Last Action</div>
+      <div class="cmd" id="cmd">Waiting for your voice command…</div>
+      <div class="res" id="res"></div>
+    </div>
+
+    <div class="panel" style="width:100%;max-width:640px">
+      <div class="label">Supported Capabilities</div>
+      <div class="caps" id="caps"></div>
+    </div>
+  </main>
+
+  <aside class="right">
+    <div class="panel watch">
+      <div class="label">Arc Alerts & Reminders</div>
+      <div class="chip"><span>Outbound alert</span><i id="outbound" class="ok"><span class="dot"></span>ACTIVE (Voice)</i></div>
+      <div id="dls" class="dls"><div class="empty">No deadlines yet.</div></div>
+      <form id="addDl" class="add">
+        <input id="dlTitle" placeholder="What is due? e.g. DBMS project" required>
+        <input id="dlWhen" placeholder="When? e.g. tomorrow 5 pm, in 2 minutes" required>
+        <button type="submit">Add deadline</button>
+      </form>
+      <button id="testCall" class="ghostbtn" type="button">📢 Test Voice Alert</button>
+      <div id="watchMsg" class="watchmsg"></div>
+    </div>
+
+    <div class="panel" style="display:flex;flex-direction:column;min-height:0">
+      <div class="label">Live Activity Feed</div>
+      <div class="feed" id="feed"><div class="empty">No actions yet. Talk to Arc.</div></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const CAPS = {
+  open_website:['🌐','Open website'], web_search:['🔎','Google search'], play_youtube:['▶️','Play on YouTube'],
+  open_app:['🗂️','Open apps'], media_control:['🎚️','Music & volume'], run_routine:['⚡','Work/Study modes'],
+  set_timer:['⏱️','Talking timer'], speak_on_laptop:['🔊','Laptop speaks'], take_screenshot:['📸','Screenshot'],
+  draft_email:['✉️','Draft emails'], directions:['🧭','Directions'], weather:['⛅','Weather'],
+  take_note:['📝','Take notes'], read_notes:['📖','Read notes'], show_notes:['🗒️','Show notes'],
+  system_status:['🔋','Battery & time'], lock_screen:['🔒','Lock laptop'],
+  find_file:['📂','Find & open file'], focus_session:['🎯','Focus session'],
+  add_deadline:['⏰','Deadlines'], list_deadlines:['📋','List deadlines'], finish_deadline:['✅','Mark submitted'],
+  classroom_due:['📚','Google Classroom'], call_owner:['📢','Voice alert'],
+};
+const NICE = Object.fromEntries(Object.entries(CAPS).map(([k,v])=>[k,v[1]]));
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = id => document.getElementById(id);
+let seen = null, idle, inCall = false, recognition = null, synth = window.speechSynthesis, callSeconds = 0, callTimer = null;
+
+// Initial setup
+fetch('/status').then(r=>r.json()).then(s=>{
+  $('lock').innerHTML = s.lock ? `<span class="ok"><span class="dot"></span>ON</span>` : '<span class="warn"><span class="dot"></span>OFF</span>';
+  $('caps').innerHTML = s.actions.filter(a=>CAPS[a]).map(a=>`<div class="cap" data-a="${a}" onclick="sendQuick('${CAPS[a][1]}')"><span class="ic">${CAPS[a][0]}</span>${esc(CAPS[a][1])}</div>`).join('');
+  if (s.ai) {
+    $('aiEngine').textContent = s.ai.mode.toUpperCase();
+    $('aiBadge').textContent = '⚡ ' + s.ai.label;
+  }
+  if (window.location.origin.includes('trycloudflare.com')) {
+    $('tunnelLinkBox').innerHTML = `<b>Connected via Cloudflare Tunnel</b><br><span style="font-size:11px">${window.location.href}</span>`;
+  } else {
+    $('tunnelLinkBox').innerHTML = `Local: <b>${window.location.origin}</b><br><span style="font-size:11px">Start tunnel with Start-Arc.bat for mobile link</span>`;
+  }
+}).catch(()=>{});
+
+function pulse(e){
+  const r = $('reactor');
+  r.classList.remove('fire','deny'); void r.offsetWidth;
+  r.classList.add(e.refused ? 'deny' : 'fire');
+  $('state').textContent = e.refused ? 'REFUSED' : 'EXECUTING';
+  $('big').textContent = e.refused ? 'Not owner' : (NICE[e.action] || e.action);
+  $('cmd').innerHTML = e.input && e.input !== 'none' ? `<q>${esc(e.input)}</q>` : esc(NICE[e.action] || e.action);
+  $('res').textContent = e.result || '';
+  document.querySelectorAll('.cap').forEach(c=>c.classList.toggle('hot', c.dataset.a === e.action));
+  clearTimeout(idle);
+  idle = setTimeout(()=>{
+    r.classList.remove('fire','deny');
+    $('state').textContent = inCall ? 'LISTENING' : 'STANDBY';
+    $('big').textContent = inCall ? 'In Call' : 'Ready';
+    document.querySelectorAll('.cap.hot').forEach(c=>c.classList.remove('hot'));
+  }, 6000);
+}
+
+async function tick(){
+  try{
+    const a = await (await fetch('/activity')).json();
+    const key = JSON.stringify(a[0] || null);
+    if (key === seen) return;
+    const first = seen === null; seen = key;
+    $('count').textContent = a.filter(e=>!e.refused).length;
+    $('feed').innerHTML = a.length ? a.map((e,i)=>`<div class="item ${e.refused?'refused':''} ${!first&&i===0?'new':''}">
+      <div class="top"><span class="act">${esc(e.action)}</span><span>${e.caller?esc(e.caller)+' · ':''}${esc(e.at)}</span></div>
+      ${e.input && e.input!=='none' ? `<div class="in">“${esc(e.input)}”</div>` : ''}<div class="out">${esc(e.result)}</div></div>`).join('')
+      : '<div class="empty">No actions yet. Talk to Arc.</div>';
+    if (!first && a[0]) pulse(a[0]);
+    $('link').innerHTML = '<span class="dot"></span>ONLINE'; $('link').className = 'ok';
+  }catch{ $('link').innerHTML = '<span class="dot"></span>OFFLINE'; $('link').className = 'bad'; }
+}
+setInterval(tick, 700); tick();
+
+// ---------- Free Web Voice Call Engine ----------
+function speakText(text, onEnd) {
+  if (!synth) { if (onEnd) onEnd(); return; }
+  synth.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 1.05;
+  utter.pitch = 1.0;
+  const voices = synth.getVoices();
+  const natural = voices.find(v => (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Heera')) && v.lang.startsWith('en')) || voices.find(v => v.lang.startsWith('en'));
+  if (natural) utter.voice = natural;
+  utter.onend = () => { if (onEnd) onEnd(); };
+  utter.onerror = () => { if (onEnd) onEnd(); };
+  synth.speak(utter);
+}
+
+function initSpeechRecognition() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    alert("Speech recognition is not supported in this browser. Please use Chrome, Edge or Safari.");
+    return null;
+  }
+  const rec = new SpeechRec();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.lang = 'en-IN'; // Multilingual English/Hindi accent recognition
+
+  rec.onstart = () => {
+    $('speechText').textContent = "Listening... Speak naturally.";
+  };
+
+  rec.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; ++i) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    if (interim) $('speechText').textContent = "Heard: " + interim;
+    if (final && final.trim()) {
+      $('speechText').textContent = "Processing: " + final.trim();
+      processVoiceCommand(final.trim());
+    }
+  };
+
+  rec.onerror = (e) => {
+    if (e.error !== 'no-speech') {
+      $('speechText').textContent = "Mic status: " + e.error;
+    }
+  };
+
+  rec.onend = () => {
+    if (inCall) {
+      try { rec.start(); } catch {}
+    }
+  };
+
+  return rec;
+}
+
+function toggleCall() {
+  if (!inCall) {
+    startCall();
+  } else {
+    endCall();
+  }
+}
+
+function startCall() {
+  inCall = true;
+  $('callBtn').textContent = "🛑 End Call";
+  $('callBtn').className = "btn btn-red";
+  $('callAvatar').classList.add('incall');
+  $('callTitle').textContent = "In Call with Arc";
+  callSeconds = 0;
+  callTimer = setInterval(() => {
+    callSeconds++;
+    const m = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+    const s = String(callSeconds % 60).padStart(2, '0');
+    $('callSub').textContent = `In Call · ${m}:${s}`;
+  }, 1000);
+
+  $('state').textContent = 'CALL ACTIVE';
+  $('big').textContent = 'Arc Live';
+
+  // Greeting from Arc
+  const greeting = "Hey Boss, it's Arc. What can I do for you?";
+  $('speechText').textContent = "Arc: " + greeting;
+  speakText(greeting, () => {
+    if (!recognition) recognition = initSpeechRecognition();
+    if (recognition && inCall) {
+      try { recognition.start(); } catch {}
+    }
+  });
+}
+
+function endCall() {
+  inCall = false;
+  $('callBtn').textContent = "📞 Call Arc";
+  $('callBtn').className = "btn btn-green";
+  $('callAvatar').classList.remove('incall');
+  $('callTitle').textContent = "Voice Call Arc";
+  $('callSub').textContent = "Call ended. Press 'Call Arc' to talk again.";
+  $('speechText').textContent = "Call ended.";
+  clearInterval(callTimer);
+  if (recognition) {
+    try { recognition.stop(); } catch {}
+  }
+  if (synth) synth.cancel();
+  $('state').textContent = 'STANDBY';
+  $('big').textContent = 'Ready';
+}
+
+async function processVoiceCommand(text) {
+  if (!text) return;
+  // If user says bye or hang up
+  if (/^(bye|goodbye|hang up|end call|band karo)\b/i.test(text.toLowerCase())) {
+    speakText("Talk to you later, Boss. Goodbye!", () => endCall());
+    return;
+  }
+
+  $('speechText').textContent = "Arc is thinking: " + text;
+  $('cmd').innerHTML = `<q>${esc(text)}</q>`;
+
+  try {
+    const res = await fetch('/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    const data = await res.json();
+    const reply = data.reply || "Done Boss.";
+    $('speechText').textContent = "Arc: " + reply;
+    $('res').textContent = reply;
+
+    if (inCall) {
+      if (recognition) try { recognition.stop(); } catch {}
+      speakText(reply, () => {
+        if (inCall && recognition) {
+          try { recognition.start(); } catch {}
+        }
+      });
+    } else {
+      speakText(reply);
+    }
+  } catch (e) {
+    $('speechText').textContent = "Error: " + e.message;
+  }
+}
+
+function handleChatSubmit(e) {
+  e.preventDefault();
+  const input = $('chatInput');
+  const val = input.value.trim();
+  if (!val) return;
+  input.value = '';
+  processVoiceCommand(val);
+}
+
+function sendQuick(text) {
+  const clean = text.replace(/[“"]/g, '').trim();
+  processVoiceCommand(clean);
+}
+
+// Deadlines & Watcher
+const left = m => m < 0 ? 'overdue' : m < 60 ? `${Math.round(m)} min left` : m < 2880 ? `${Math.round(m/60)} h left` : `${Math.round(m/1440)} days left`;
+async function watch(){
+  try{
+    const s = await (await fetch('/monitor')).json();
+    $('dls').innerHTML = s.deadlines.length ? s.deadlines.map(d=>`<div class="dl ${d.minutesLeft<0?'late':d.minutesLeft<180?'soon':''}">
+      <div><b>${esc(d.title)}</b><small>${new Date(d.due).toLocaleString('en-IN',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})} · ${left(d.minutesLeft)}</small></div>
+      <button data-id="${esc(d.id)}">Submitted</button></div>`).join('') : '<div class="empty">No deadlines yet. Say “remind me...”</div>';
+  }catch{}
+}
+async function post(path, body){ const r = await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}); return r.json(); }
+$('dls').addEventListener('click', async e => { const id = e.target.dataset?.id; if (!id) return; $('watchMsg').textContent = (await post('/monitor/done',{id})).result; watch(); });
+$('addDl').addEventListener('submit', async e => { e.preventDefault(); const r = await post('/monitor/add',{title:$('dlTitle').value, when:$('dlWhen').value}); $('watchMsg').textContent = r.result; if (!/couldn|passed|Tell me/.test(r.result)) { $('dlTitle').value=''; $('dlWhen').value=''; } watch(); });
+$('testCall').addEventListener('click', async () => {
+  $('watchMsg').textContent = 'Triggering voice alert...';
+  const r = await post('/monitor/test-call');
+  $('watchMsg').textContent = r.ok ? 'Alert spoken on laptop speakers!' : `Alert failed: ${r.error || ''}`;
+});
+setInterval(watch, 5000); watch();
+</script>
+</body>
+</html>
